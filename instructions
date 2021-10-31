@@ -1,0 +1,168 @@
+01_[index.js]: handle root request
+02_[index.js]: set port that Express will listen to
+==> At this stage, we can do "node .\src\index.js" to start Express
+
+03_[index.js]: get connection string to Mongo DB (from Mongo DB website)
+04_[index.js]: actually connect to Mongo DB through moongoose
+05a_[index.js]: set up call back function to run when connection is successful i.e. "connected"
+05b_[index.js]: set up call back function to run when connection is NOT successful i.e. "error"
+==> At this stage, we can do "node .\src\index.js" and will see if the application can connect to Mongo
+==> If succesful, we will run the call back function will displayed the test "Successfully connected to MongoDB!!!"
+
+We change syntax to "npm run dev"
+
+06a_[routes/authRoutes.js]: // 06a_ logic to run when someone makes a POST request to "<URL>/signup"
+06b_[routes/authRoutes.js]: export module to use
+07_[index.js]: associates all request handlers in authRoutes.js to the main body of application
+
+08_[models/User.js]: tell Moongose about User Schema in Mongo DB
+09_[models/User.js]: communicates that there is now a data model called "User" to be used
+10_[models/User.js]: ensures "mongoose.model('User',userSchema);" only executed once
+
+==> Construct request in Postman
+1) Request type is POST
+2) Request address is localhost:3000/signup
+3) Body is Json
+{
+    "email":"test02@khoa.com",
+    "password":"mypass"
+}
+4) Headers is
+Content-Type: application/json
+
+11_[routes/authRoutes.js]: Accessing User Model
+12_[routes/authRoutes.js]: deconstruct email and password from body
+13_[routes/authRoutes.js]: create a User object
+14_[routes/authRoutes.js]: send create new user request to Mongo
+15_[routes/authRoutes.js]: error handling with signup request
+16_[routes/authRoutes.js]: create JWT through signing object with a key
+17_[routes/authRoutes.js]: send token back to user. We will use Token to identify a user in subsequent user
+
+
+18a_[middlewares/requrieAuth.js]: Middleware will take an incoming request and do some PRE-processing on it such as if request has valid JWT
+18b_[middlewares/requrieAuth.js]: If request has valid JWT, we will call "next" function in the middleware chain. When no more middleware, we will proceed to main request handler
+
+19a_[middlewares/requrieAuth.js]: For this app, we will require users to supply JWT in Authorization header
+19b_[middlewares/requrieAuth.js]: Deconstructing Authorization header from users request for processing
+
+==> Construct request in Postman
+1) Request type is GET
+2) Request address is localhost:3000
+3) Headers is
+Authorization: "Bearer <JWT>"
+such as
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2MTdlMWY4YzNkYzg0ZWZlMjIzZGU2MDAiLCJpYXQiOjE2MzU2NTU1NjV9.YbNgMC3PJB3R-0_nvd36kUjsN_GrAb3phZ5iGmAi3mg
+
+20_[middlewares/requrieAuth.js]: Verify JWT against secret key
+    // jwt.verify(token,'MY_SECRET_KEY', async (err, payload)=> { })
+    // 1st arg = token
+    // 2nd arg = key
+    // 3rd arg = function that will be invoked after JWT has done some validation on that token
+    // "err" is any error from verification
+    // "payload" will be an object {userId:User._id} <== This is the object we used to create JWT
+
+21_[middlewares/requrieAuth.js]: attach returned user model to req.user so that other processes can have access to it
+22_[middlewares/requrieAuth.js]: go to the next middleware in the chains of middleware
+
+23_[index.js]: inject middleware for pre-processing
+24_[index.js]: accessing user email which we attached to request in step "21"
+
+25_[models/User.js]: implementing pre-save hook (salting password)
+26_[models/User.js]: generating hash and updating password
+27_[models/User.js]: updating password on successful generating of SALT
+28_[models/User.js]: check the user login's password agaisnt what we in our DB
+
+29_[routes/authRoutes.js]: when someone tries to sign in, we will run this function
+30_[routes/authRoutes.js]: once compare is successful, send a token back to user to use in subsequent requests
+
+[Make sure app is running]
+==> Construct request in Postman
+1) Request type is POST
+2) Request address is localhost:3000/signin
+3) Body is Json
+{
+    "email":"test02@khoa.com",
+    "password":"mypass"
+}
+4) Headers is
+Content-Type: application/json
+** If request is successful, we will get a JWT back
+
+
+// 31_ define track Schema in Moongoose
+// 32_ this is Moongoose specific which tells Mongoose that this "userId" is linked to a specific instance of a "User"
+// 33_ we have to define pointSchema before using it in trackSchema
+// 34_ tie some collection of data (such as "track")in MongoDB to Mongoose
+
+// 35_[routes/trackRoutes.js]: this function is to manange different routes that user took
+// 36_[routes/trackRoutes.js]: we use this middleware to ensure user is signed in
+// 37b_[routes/trackRoutes.js]: We want to "require in" at least once in our code
+// 37b_[index.js]: We want to "require in" at least once in our code
+
+// 38_[routes/trackRoutes.js]: making sure that all requests using this route will require user to be signed in
+// 39_[routes/trackRoutes.js]: 1st handler to get all tracks that have been created
+// 40_[routes/trackRoutes.js]: we want all tracks that associated with the user
+
+// 41a_[index.js]: use trackRoute that we've just created
+// 41b_[index.js]: associated trackRoutes with "app" object
+
+[Make sure app is running]
+    ==> Construct request in Postman to get token
+        1) Request type is POST
+        2) Request address is localhost:3000/signin
+        3) Body is Json
+        {
+            "email":"test02@khoa.com",
+            "password":"mypass"
+        }
+        4) Headers is
+        Content-Type: application/json
+        ** If request is successful, we will get a JWT back
+    ==> [Optional] Check JWT by constructing request in Postman
+        1) Request type is GET
+        2) Request address is localhost:3000
+        3) Headers is
+        Authorization: "Bearer <JWT>"
+        such as
+        eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2MTdlMWY4YzNkYzg0ZWZlMjIzZGU2MDAiLCJpYXQiOjE2MzU2NTU1NjV9.YbNgMC3PJB3R-0_nvd36kUjsN_GrAb3phZ5iGmAi3mg
+    ==> Check JWT by constructing request in Postman
+        1) Request type is GET
+        2) Request address is localhost:3000/tracks
+        3) Headers is
+        Authorization: "Bearer <JWT>"
+    ==> We should get back empty array "[]"
+
+// 42_ 2nd handler to create tracks
+// 43_ deconstruct "req" based on our assumption
+    ==> Create new track
+        1) Request type is POST
+        2) Request address is localhost:3000/tracks
+        3) Headers is
+        Authorization: "Bearer <JWT>",
+        Content-Type: application/json
+        4) Body is Json
+        {
+            "name":"My new track",
+            "locations":[
+                {
+                    "timestamp":10000000000,
+                    "coords":{
+                        "latitude": 1000,
+                        "longitude": 1000,
+                        "altitude": 1000,
+                        "accuracy": 1000,
+                        "heading": 1000,
+                        "speed": 1000
+                    }
+                }
+                
+            ]
+        }
+
+    ==> Once request is created, we can use GET request to retrieve tracks
+        1) Request type is GET
+        2) Request address is localhost:3000
+        3) Headers is
+        Authorization: "Bearer <JWT>"
+        such as
+        eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2MTdlMWY4YzNkYzg0ZWZlMjIzZGU2MDAiLCJpYXQiOjE2MzU2NTU1NjV9.YbNgMC3PJB3R-0_nvd36kUjsN_GrAb3phZ5iGmAi3mg
